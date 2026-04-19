@@ -21,30 +21,34 @@ export function parseBody(body: string): BodyBlock[] {
   };
 
   for (const raw of lines) {
-    const line = raw.trim();
-    if (line === "") {
+    if (raw.trim() === "") {
       flush();
       continue;
     }
-    const heading = /^(#{1,6})\s+(.*)$/.exec(line);
-    if (heading) {
+    const headingMatch = /^(#{1,6})\s+(.*)$/.exec(raw.trim());
+    if (headingMatch) {
       flush();
       blocks.push({
         type: "heading",
-        level: heading[1]!.length,
-        text: stripInline(heading[2]!),
+        level: headingMatch[1]!.length,
+        text: stripInline(headingMatch[2]!),
       });
       continue;
     }
-    const bullet = /^[-*]\s+(.*)$/.exec(line);
-    if (bullet) {
+    const bulletMatch = /^[-*]\s+(.*)$/.exec(raw.trim());
+    if (bulletMatch) {
       if (mode !== "bullets") flush();
-      buffer.push(stripInline(bullet[1]!));
+      buffer.push(stripInline(bulletMatch[1]!));
       mode = "bullets";
       continue;
     }
+    const isIndentedContinuation = /^\s{2,}\S/.test(raw);
+    if (mode === "bullets" && isIndentedContinuation && buffer.length > 0) {
+      buffer[buffer.length - 1] = `${buffer[buffer.length - 1]} ${stripInline(raw.trim())}`;
+      continue;
+    }
     if (mode === "bullets") flush();
-    buffer.push(stripInline(line));
+    buffer.push(stripInline(raw.trim()));
     mode = "paragraph";
   }
   flush();
