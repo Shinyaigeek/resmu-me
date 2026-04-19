@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { loadConfig } from "./core/config.js";
 import { runBuild, runSync } from "./core/run.js";
 import { runProfileWizard } from "./interactive/wizard.js";
+import { runRefine } from "./interactive/llm.js";
 import { logger } from "./core/logger.js";
 import { writeFile, mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -55,6 +56,14 @@ program
   .option("-s, --source <path>", "path to MDX source", "profile/index.mdx")
   .action(async (opts: { source: string }) => {
     await runProfileWizard(opts.source);
+  });
+
+program
+  .command("refine")
+  .description("Use Claude to rewrite parts of your MDX profile")
+  .option("-s, --source <path>", "path to MDX source", "profile/index.mdx")
+  .action(async (opts: { source: string }) => {
+    await runRefine({ source: opts.source });
   });
 
 program.parseAsync().catch((err) => {

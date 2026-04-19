@@ -7,7 +7,7 @@ Author your resume / 職務履歴書 once in MDX, ship it anywhere via plugins.
 - **Sync plugins**: push updates to external media (GitHub profiles, LinkedIn-style services, custom APIs) through a uniform plugin contract.
 - **Interactive wizard**: the `resmu profile` command walks you through sharpening your profile conversationally.
 
-Status: early scaffolding — the core types, CLI, MDX loader, and a reference `plain` output plugin are in place.
+Status: early scaffolding — core types, CLI, MDX loader, built-in `plain` and `pdf` output plugins, and an LLM-assisted `refine` command are in place.
 
 ## Quickstart
 
@@ -84,12 +84,22 @@ See `src/plugins/plain` for a complete reference implementation.
 | `resmu build [target]` | run all output plugins (or a single one by name) |
 | `resmu sync [target]` | run all sync plugins (or a single one by name) |
 | `resmu profile` | interactive wizard — drafts / refines your MDX |
+| `resmu refine` | LLM-assisted rewrite (tighten highlights, draft summary, free-form) — needs `ANTHROPIC_API_KEY` |
+
+## LLM refine
+
+`resmu refine` sends your current MDX to Claude (`claude-opus-4-7`) and streams a revised version back. Pick a preset (tighten highlights, draft summary, suggest skill categorization) or give a free-form instruction. The revision is shown first; you confirm before it overwrites the file.
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+resmu refine --source profile/index.mdx
+```
 
 ## Roadmap
 
-- Built-in PDF and HTML output plugins
+- HTML / themed web output plugin
 - First-party sync plugins (GitHub profile README, custom webhook)
-- LLM-assisted rewrite mode in the wizard
+- Diff preview for `refine` before write
 - Plugin presets for common job-hunting workflows
 
 ## License
