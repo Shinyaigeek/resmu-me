@@ -36,7 +36,8 @@
     "dev": "tsc -p tsconfig.json --watch",
     "start": "node ./dist/cli.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepare": "tsc -p tsconfig.json"
   },
   "engines": {
     "node": ">=20"
