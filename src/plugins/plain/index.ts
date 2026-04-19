@@ -1,5 +1,6 @@
 import type { OutputPlugin } from "../../core/plugin.js";
 import type { Profile } from "../../core/types.js";
+import { parseBody } from "../../core/body.js";
 
 export interface PlainOptions {
   filename?: string;
@@ -79,6 +80,21 @@ function renderPlain(profile: Profile): string {
       lines.push(`- ${e.school}${e.degree ? `, ${e.degree}` : ""}${period ? `  (${period})` : ""}`);
     }
     lines.push("");
+  }
+
+  const bodyBlocks = parseBody(profile.raw.body);
+  for (const block of bodyBlocks) {
+    if (block.type === "heading") {
+      if (block.level <= 2) lines.push(block.text.toUpperCase());
+      else lines.push(block.text);
+      lines.push("");
+    } else if (block.type === "paragraph") {
+      lines.push(block.text);
+      lines.push("");
+    } else {
+      for (const item of block.items) lines.push(`- ${item}`);
+      lines.push("");
+    }
   }
 
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";

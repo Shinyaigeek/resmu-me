@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import type { OutputPlugin } from "../../core/plugin.js";
 import type { Profile } from "../../core/types.js";
+import { parseBody } from "../../core/body.js";
 
 export interface PdfOptions {
   filename?: string;
@@ -108,6 +109,27 @@ function renderPdf(profile: Profile, options: PdfOptions): Promise<Uint8Array> {
         const period = [e.start, e.end].filter(Boolean).join(" — ");
         const line = `${e.school}${e.degree ? ` · ${e.degree}` : ""}${period ? `  (${period})` : ""}`;
         doc.font("Helvetica").fontSize(11).fillColor("#222").text(line);
+      }
+      doc.moveDown(0.4);
+    }
+
+    const bodyBlocks = parseBody(profile.raw.body);
+    for (const block of bodyBlocks) {
+      if (block.type === "heading") {
+        if (block.level <= 2) {
+          heading(doc, block.text, accent);
+        } else {
+          doc.moveDown(0.3);
+          doc.font("Helvetica-Bold").fontSize(11).fillColor("#111").text(block.text);
+          doc.moveDown(0.1);
+        }
+      } else if (block.type === "paragraph") {
+        doc.font("Helvetica").fontSize(11).fillColor("#222").text(block.text, { lineGap: 2 });
+        doc.moveDown(0.3);
+      } else {
+        doc.font("Helvetica").fontSize(11).fillColor("#222");
+        for (const item of block.items) doc.text(`•  ${item}`, { indent: 6, lineGap: 2 });
+        doc.moveDown(0.3);
       }
     }
 
