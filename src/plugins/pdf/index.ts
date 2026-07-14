@@ -25,8 +25,11 @@ export default function pdf(options: PdfOptions = {}): OutputPlugin {
 
 // Bare URLs inside flowing text (stripInline renders markdown links as
 // "text (url)") become clickable link annotations: the text is emitted as
-// continued runs, with `link` set only on the URL spans.
+// continued runs, with `link` set only on the URL spans, which are drawn
+// in the link color with an underline so they read as links on paper too.
 const URL_RE = /(https?:\/\/[^\s()<>\u3000-\uffff]*[^\s()<>\u3000-\uffff.,;:])/;
+
+const LINK_COLOR = "#1f6feb";
 
 function textWithLinks(doc: PDFKit.PDFDocument, text: string, options: PDFKit.Mixins.TextOptions = {}) {
   const parts = text.split(URL_RE).filter((p) => p !== "");
@@ -34,14 +37,17 @@ function textWithLinks(doc: PDFKit.PDFDocument, text: string, options: PDFKit.Mi
     doc.text(text, options);
     return;
   }
+  const bodyColor = ((doc as unknown as { _fillColor?: unknown[] })._fillColor?.[0] ?? "#222") as string;
   parts.forEach((part, i) => {
     const isUrl = /^https?:\/\//.test(part);
-    doc.text(part, {
+    doc.fillColor(isUrl ? LINK_COLOR : bodyColor).text(part, {
       ...options,
       continued: i < parts.length - 1,
       link: isUrl ? part : (null as unknown as string),
+      underline: isUrl,
     });
   });
+  doc.fillColor(bodyColor);
 }
 
 function renderPdf(profile: Profile, options: PdfOptions): Promise<Uint8Array> {
