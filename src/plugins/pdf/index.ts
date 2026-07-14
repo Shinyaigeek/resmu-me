@@ -23,6 +23,27 @@ export default function pdf(options: PdfOptions = {}): OutputPlugin {
   };
 }
 
+// Bare URLs inside flowing text (stripInline renders markdown links as
+// "text (url)") become clickable link annotations: the text is emitted as
+// continued runs, with `link` set only on the URL spans.
+const URL_RE = /(https?:\/\/[^\s()<>\u3000-\uffff]*[^\s()<>\u3000-\uffff.,;:])/;
+
+function textWithLinks(doc: PDFKit.PDFDocument, text: string, options: PDFKit.Mixins.TextOptions = {}) {
+  const parts = text.split(URL_RE).filter((p) => p !== "");
+  if (parts.length === 0) {
+    doc.text(text, options);
+    return;
+  }
+  parts.forEach((part, i) => {
+    const isUrl = /^https?:\/\//.test(part);
+    doc.text(part, {
+      ...options,
+      continued: i < parts.length - 1,
+      link: isUrl ? part : (null as unknown as string),
+    });
+  });
+}
+
 function renderPdf(profile: Profile, options: PdfOptions): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 54, size: "LETTER" });
@@ -42,16 +63,15 @@ function renderPdf(profile: Profile, options: PdfOptions): Promise<Uint8Array> {
       for (const [k, v] of Object.entries(profile.meta.links)) contactBits.push(`${k}: ${v}`);
     }
     if (contactBits.length) {
-      doc.moveDown(0.3).fontSize(10).fillColor("#444").text(contactBits.join("  ·  "));
+      doc.moveDown(0.3).fontSize(10).fillColor("#444");
+      textWithLinks(doc, contactBits.join("  ·  "));
     }
     doc.moveDown(0.8);
 
     if (profile.summary) {
       heading(doc, "Summary", accent);
-      doc.font("Helvetica").fontSize(11).fillColor("#222").text(profile.summary, {
-        align: "left",
-        lineGap: 2,
-      });
+      doc.font("Helvetica").fontSize(11).fillColor("#222");
+      textWithLinks(doc, profile.summary, { align: "left", lineGap: 2 });
       doc.moveDown(0.6);
     }
 
@@ -68,7 +88,7 @@ function renderPdf(profile: Profile, options: PdfOptions): Promise<Uint8Array> {
         doc.moveDown(0.2);
         doc.font("Helvetica").fontSize(11).fillColor("#222");
         for (const h of exp.highlights) {
-          doc.text(`•  ${h}`, { indent: 6, lineGap: 2 });
+          textWithLinks(doc, `•  ${h}`, { indent: 6, lineGap: 2 });
         }
         if (exp.tags?.length) {
           doc.moveDown(0.1).font("Helvetica-Oblique").fontSize(9).fillColor("#888").text(exp.tags.join(" · "));
@@ -97,8 +117,9 @@ function renderPdf(profile: Profile, options: PdfOptions): Promise<Uint8Array> {
       heading(doc, "Projects", accent);
       for (const p of profile.projects) {
         doc.font("Helvetica-Bold").fontSize(11).fillColor("#111").text(p.name);
-        if (p.url) doc.font("Helvetica-Oblique").fontSize(9).fillColor(accent).text(p.url);
-        doc.font("Helvetica").fontSize(11).fillColor("#222").text(p.description, { lineGap: 2 });
+        if (p.url) doc.font("Helvetica-Oblique").fontSize(9).fillColor(accent).text(p.url, { link: p.url });
+        doc.font("Helvetica").fontSize(11).fillColor("#222");
+        textWithLinks(doc, p.description, { lineGap: 2 });
         doc.moveDown(0.3);
       }
     }
@@ -124,11 +145,12 @@ function renderPdf(profile: Profile, options: PdfOptions): Promise<Uint8Array> {
           doc.moveDown(0.1);
         }
       } else if (block.type === "paragraph") {
-        doc.font("Helvetica").fontSize(11).fillColor("#222").text(block.text, { lineGap: 2 });
+        doc.font("Helvetica").fontSize(11).fillColor("#222");
+        textWithLinks(doc, block.text, { lineGap: 2 });
         doc.moveDown(0.3);
       } else {
         doc.font("Helvetica").fontSize(11).fillColor("#222");
-        for (const item of block.items) doc.text(`•  ${item}`, { indent: 6, lineGap: 2 });
+        for (const item of block.items) textWithLinks(doc, `•  ${item}`, { indent: 6, lineGap: 2 });
         doc.moveDown(0.3);
       }
     }
